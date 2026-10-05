@@ -1,0 +1,27 @@
+.badge {
+  --sev-fg: var(--sev-low);
+  --sev-bg: var(--sev-low-bg);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  background: var(--sev-bg);
+  color: var(--sev-fg);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badge[data-severity='critical'] { --sev-fg: var(--sev-critical); --sev-bg: var(--sev-critical-bg); }
+.badge[data-severity='high'] { --sev-fg: var(--sev-high); --sev-bg: var(--sev-high-bg); }
+.badge[data-severity='medium'] { --sev-fg: var(--sev-medium); --sev-bg: var(--sev-medium-bg); }
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
