@@ -20,8 +20,10 @@ backend/app/static/
 backend/data/
 reports/
 
-# Segredos
+# Segredos (.env, .env.local, .env.production...); só o modelo vai para o git
 .env
+.env.*
+!.env.example
 
 # SO
 .DS_Store

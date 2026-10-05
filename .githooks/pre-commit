@@ -6,8 +6,9 @@ source "$(dirname "$0")/_common.sh"
 
 step "segredos"
 staged="$(git diff --cached --name-only --diff-filter=ACMR)"
-if grep -Eq '(^|/)\.env$' <<<"$staged"; then
-  fail ".env não pode ser commitado (contém segredos). Use o .env.example."
+env_files="$(grep -E '(^|/)\.env(\.[^/]+)?$' <<<"$staged" | grep -Ev '(^|/)\.env\.example$' || true)"
+if [ -n "$env_files" ]; then
+  fail "Arquivos .env não podem ser commitados (contêm segredos): $env_files. Use o .env.example."
 fi
 added="$(git diff --cached -U0 --diff-filter=ACMR -- . ':(exclude)frontend/package-lock.json' | grep -E '^\+' || true)"
 if grep -Eq 'sk-ant-[A-Za-z0-9_-]{20,}' <<<"$added"; then
