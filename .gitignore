@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/coverage/
+
+# Build e dados locais
+backend/app/static/
+backend/data/
+reports/
+
+# Segredos
+.env
+
+# SO
+.DS_Store
