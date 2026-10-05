@@ -21,13 +21,15 @@ Se a porta 8000 estiver ocupada, use outra: `make run MESA_PORT=8010`.
 
 ### LLM real (opcional)
 
-Sem chave, o sistema usa um adaptador **determinístico**, sem rede. Ele interpreta sinais e responde o copiloto por palavras-chave. Para usar o Claude:
+Sem chave, o sistema usa um adaptador **determinístico**, sem rede. Ele interpreta sinais e responde o copiloto por palavras-chave. Para usar o Claude, preencha o `.env` da raiz (fica fora do git; o modelo é o `.env.example`):
 
 ```bash
-export ANTHROPIC_API_KEY=...
-export ANTHROPIC_MODEL=claude-haiku-4-5   # padrão
-make run
+cp .env.example .env    # se ainda não existir
+# edite .env: ANTHROPIC_API_KEY=sk-ant-...
+make run                # make run e make dev carregam o .env (uvicorn --env-file)
 ```
+
+Variáveis exportadas no shell também funcionam.
 
 `GET /api/health` informa qual cliente está ativo (`anthropic` ou `deterministic`).
 

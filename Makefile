@@ -1,6 +1,8 @@
 MESA_PORT ?= 8000
 PY := $(CURDIR)/.venv/bin/python
 NPM := npm --prefix frontend
+ENV_FILE := $(wildcard $(CURDIR)/.env)
+ENV_OPT := $(if $(ENV_FILE),--env-file $(ENV_FILE))
 
 .PHONY: install dev test build run validate e2e
 
@@ -11,7 +13,7 @@ install: ## Instala dependências do backend e do frontend
 
 dev: ## Backend com reload (8000) + Vite (5173) com proxy de /api
 	trap 'kill 0' EXIT; \
-	(cd backend && $(PY) -m uvicorn app.main:app --reload --port $(MESA_PORT)) & \
+	(cd backend && $(PY) -m uvicorn app.main:app --reload --port $(MESA_PORT) $(ENV_OPT)) & \
 	$(NPM) run dev
 
 test: ## Suíte completa de qualidade (skill validar-testes)
@@ -21,7 +23,7 @@ build: ## Build do React em backend/app/static
 	$(NPM) run build
 
 run: ## Monolito em http://localhost:8000
-	cd backend && $(PY) -m uvicorn app.main:app --port $(MESA_PORT)
+	cd backend && $(PY) -m uvicorn app.main:app --port $(MESA_PORT) $(ENV_OPT)
 
 e2e: build ## Fluxos de ponta a ponta (skill validar-fluxo)
 	$(PY) .claude/skills/validar-fluxo/scripts/validate_flows.py --out reports/flows
