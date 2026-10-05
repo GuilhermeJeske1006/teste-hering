@@ -16,16 +16,22 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     MESA_DB_PATH=/data/mesa.db
 WORKDIR /app/backend
+# A imagem base demora dias para receber correções do Debian; o upgrade fecha essa janela (gate do Trivy, ADR 0015).
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 COPY backend/pyproject.toml ./
 COPY backend/app ./app
 RUN pip install -e . \
-    && useradd --create-home --uid 10001 mesa \
-    && mkdir -p /data && chown mesa:mesa /data
+    && groupadd --gid 10001 mesa \
+    && useradd --create-home --uid 10001 --gid 10001 mesa \
+    && mkdir -p /data && chown 10001:10001 /data
 COPY --from=frontend /src/backend/app/static ./app/static
-USER mesa
+# UID numérico: o Kubernetes consegue provar runAsNonRoot sem resolver o nome do usuário.
+USER 10001:10001
 EXPOSE 8000
 VOLUME ["/data"]
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4)"
+  CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4)"]
 # ANTHROPIC_API_KEY entra em tempo de execução (docker run -e / --env-file), nunca na imagem.
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
