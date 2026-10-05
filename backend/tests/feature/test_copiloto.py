@@ -12,6 +12,17 @@ def test_copiloto_responde_citando_excecao_existente_quando_pergunto_o_que_depen
     assert body["sources"] and set(body["sources"]) <= ids
 
 
+def test_copiloto_responde_em_blocos_com_lista_numerada_quando_pergunto_o_que_depende_de_mim(
+        client: TestClient) -> None:
+    """Dado a fila da semana, quando pergunto o que depende de mim, então a resposta vem em blocos fáceis de ler."""
+    answer = client.post("/api/copilot/ask", json={"question": "Quais decisões desta semana dependem de mim?",
+                                                   "history": []}).json()["answer"]
+    opening, items, *_ = answer.split("\n\n")
+    assert "**7 exceções abertas**" in opening
+    assert [line[:3] for line in items.splitlines() if not line.startswith(" ")] == ["1. ", "2. ", "3. "]
+    assert items.splitlines()[0].startswith("1. **Crítica**")
+
+
 def test_copiloto_aceita_historico_e_produto_em_foco_quando_conversa_continua(client: TestClient) -> None:
     """Dado um histórico e o produto em foco, quando pergunto, então recebo uma resposta nova."""
     res = client.post("/api/copilot/ask", json={

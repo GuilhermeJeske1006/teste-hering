@@ -20,4 +20,13 @@
 | GET | `/api/policies` | — | `[{key,label,description,value,unit}]` | — |
 | GET | `/api/audit-log` | `?limit=50` | `[{timestamp,actor,action,subject,detail}]` do mais novo para o mais antigo | — |
 
+O `answer` do copiloto vem em **Markdown restrito** (ADR 0016), com estes elementos:
+
+- parágrafos separados por linha em branco;
+- listas com `- ` e listas numeradas com `1. `, em que a linha seguinte recuada com 3 espaços é o detalhe do item;
+- `**negrito**`;
+- ids de exceção citados entre colchetes (`[abc123def0]`).
+
+O frontend troca os ids por selos numerados que batem com `sources` e mostra todo o resto como texto. Nada vira HTML: títulos, links, tabelas e código aparecem literalmente.
+
 Fora do prefixo `/api`, qualquer rota GET serve o `index.html` do build do React (fallback de SPA). `/assets/*` serve os estáticos.

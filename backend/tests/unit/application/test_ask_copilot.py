@@ -22,14 +22,24 @@ def test_responde_e_cita_fontes_existentes_quando_resposta_menciona_ids() -> Non
     assert "Comece" in answer.answer
 
 
-def test_instrucoes_exigem_pt_br_seis_frases_e_so_dados_do_contexto_quando_pergunta() -> None:
+def test_instrucoes_exigem_pt_br_resposta_curta_e_so_dados_do_contexto_quando_pergunta() -> None:
     llm = ScriptedLLM("ok")
     copilot, _ = _copilot(llm)
     copilot.execute("Pergunta?", [], None)
     system = llm.calls[0][0].content
-    for rule in ("pt-BR", "6 frases", "só os dados do contexto", "Nunca execute", "decisão é do planejador"):
+    for rule in ("pt-BR", "120 palavras", "só os dados do contexto", "Nunca execute", "decisão é do planejador"):
         assert rule in system
     assert "<contexto>" in system
+
+
+def test_instrucoes_pedem_markdown_restrito_que_a_tela_sabe_mostrar_quando_pergunta() -> None:
+    llm = ScriptedLLM("ok")
+    copilot, _ = _copilot(llm)
+    copilot.execute("Pergunta?", [], None)
+    system = llm.calls[0][0].content
+    for rule in ('"- "', '"1. "', "recuada com 3 espaços", "**negrito**", "linha em branco", "Não use títulos",
+                 "links", "HTML"):
+        assert rule in system
 
 
 def test_historico_vai_ate_oito_turnos_mais_recentes_quando_longo() -> None:

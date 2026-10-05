@@ -2,7 +2,8 @@
 
 Ele lê só as mensagens recebidas, como um LLM faria, e responde por regras de palavra-chave:
 - mensagens com `<mensagem>` viram o JSON do agente de sinais;
-- conversas com `<contexto>` recebem uma resposta do copiloto montada a partir das exceções do contexto.
+- conversas com `<contexto>` recebem uma resposta do copiloto montada a partir das exceções do contexto,
+  no mesmo Markdown restrito que o prompt pede ao LLM (ADR 0016).
 Nunca calcula números de alocação: só repete o que já está no texto.
 """
 from __future__ import annotations
@@ -36,8 +37,9 @@ KNOWN_EVENTS = ("Oktoberfest", "Fenarreco", "Marejada", "Black Friday", "Natal",
 PENDING_WORDS = ("depend", "decis", "pendente", "aberta", "fila", "prioridade", "primeiro", "urgente", "resumo",
                  "semana", "fazer")
 SEVERITY_ORDER = {"crítica": 0, "alta": 1, "média": 2, "baixa": 3}
-MAX_SENTENCES = 6
+MAX_LISTED = 3
 MIN_WORD = 4
+SHADOW_CLOSING = "A decisão é do planejador: o sistema está em modo sombra e não executa nada"
 
 
 def _norm(text: str) -> str:
@@ -47,6 +49,17 @@ def _norm(text: str) -> str:
 
 def _words(text: str) -> set[str]:
     return {w for w in re.findall(r"[a-z0-9]+", _norm(text)) if len(w) >= MIN_WORD}
+
+
+def _sentence(text: str) -> str:
+    """Texto do contexto como frase completa, com um único ponto final."""
+    return f"{text.strip().rstrip('.')}."
+
+
+def _clause(text: str) -> str:
+    """Recomendação como continuação de frase: inicial minúscula e um único ponto final."""
+    text = _sentence(text)
+    return f"{text[:1].lower()}{text[1:]}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,27 +147,28 @@ class DeterministicLLMClient:
         if any(w in _norm(question) for w in PENDING_WORDS) or not scored or scored[0][0] == 0:
             return self._pending_answer(open_items, exceptions)
         best = scored[0][2]
-        sentences = [
-            f"Sobre [{best.id}] {best.title}: a recomendação é {best.recommendation[0].lower()}"
-            f"{best.recommendation[1:]}.",
-            f"Os números que sustentam isso: {best.facts}.",
-            f"A exceção está {best.status} e tem severidade {best.severity}.",
-            "A decisão é do planejador: o sistema está em modo sombra e não executa nada sozinho.",
+        facts = "\n".join(f"- {fact.strip()}" for fact in best.facts.split(";") if fact.strip())
+        blocks = [
+            f"**{best.title}** [{best.id}]",
+            f"**Recomendação:** {_clause(best.recommendation)}",
+            f"**Números que sustentam:**\n{facts}" if facts else "",
+            f"**Situação:** {best.status}, severidade {best.severity}.",
+            f"{SHADOW_CLOSING} sozinho.",
         ]
-        return " ".join(sentences[:MAX_SENTENCES])
+        return "\n\n".join(b for b in blocks if b)
 
     @staticmethod
     def _pending_answer(open_items: list[_ContextException], all_items: list[_ContextException]) -> str:
         if not open_items:
             return (f"Todas as {len(all_items)} exceções da semana já foram decididas. Nada depende de você agora; "
                     "o sistema segue em modo sombra e não executa nada.")
-        first, rest = open_items[0], open_items[1:3]
-        sentences = [
-            f"Há {len(open_items)} exceções abertas que dependem de você.",
-            f"A mais urgente é [{first.id}] {first.title} (severidade {first.severity}): "
-            f"{first.recommendation[0].lower()}{first.recommendation[1:]}.",
-        ]
-        if rest:
-            sentences.append("Na sequência vêm " + " e ".join(f"[{e.id}] {e.title}" for e in rest) + ".")
-        sentences.append("A decisão é do planejador: o sistema está em modo sombra e não executa nada.")
-        return " ".join(sentences[:MAX_SENTENCES])
+        count = (f"**{len(open_items)} exceções abertas** que dependem" if len(open_items) > 1
+                 else "**1 exceção aberta** que depende")
+        listed, hidden = open_items[:MAX_LISTED], len(open_items) - MAX_LISTED
+        items = "\n".join(f"{n}. **{e.severity.capitalize()}** · {e.title} [{e.id}]\n   {_sentence(e.recommendation)}"
+                          for n, e in enumerate(listed, start=1))
+        blocks = [f"Há {count} de você, da mais urgente para a menos urgente:", items]
+        if hidden > 0:
+            blocks.append(f"Mais {hidden} {'estão' if hidden > 1 else 'está'} na aba Exceções.")
+        blocks.append(f"{SHADOW_CLOSING}.")
+        return "\n\n".join(blocks)

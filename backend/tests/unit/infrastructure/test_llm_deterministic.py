@@ -59,7 +59,7 @@ Exceções:
 - [aaaaaaaaaa] crítica · aberta · Lançamento VM-FL · Vestido precisa de aprovação | Recomendação: Aprovar a grade \
 inicial de 121 peças em 8 lojas | Fatos: Lançamento na semana 41
 - [bbbbbbbbbb] alta · aberta · Transferir CB-PT M de Brusque para 3 lojas | Recomendação: Transferir 22 peças de \
-BRQ | Fatos: Estoque no CD: 50 peças
+BRQ | Fatos: Estoque no CD: 50 peças; Necessidade das lojas: 95 peças
 - [cccccccccc] baixa · aprovada · Rejeições repetidas: JJ-AZ em Jaraguá do Sul | Recomendação: Revisar a política \
 | Fatos: Rejeições: 2
 </contexto>"""
@@ -70,16 +70,42 @@ def _ask(question: str, context: str = CONTEXT) -> str:
     return DeterministicLLMClient().complete(msgs, max_tokens=600)
 
 
-def test_lista_pendencias_da_mais_urgente_quando_pergunta_o_que_depende_do_planejador() -> None:
+def _blocks(answer: str) -> list[str]:
+    return answer.split("\n\n")
+
+
+def test_lista_pendencias_numeradas_da_mais_urgente_quando_pergunta_o_que_depende_do_planejador() -> None:
     answer = _ask("Quais decisões desta semana dependem de mim?")
-    assert "2 exceções abertas" in answer and answer.index("[aaaaaaaaaa]") < answer.index("[bbbbbbbbbb]")
-    assert "[cccccccccc]" not in answer
-    assert answer.count(".") <= 8
+    opening, items, closing = _blocks(answer)
+    assert opening.startswith("Há **2 exceções abertas**")
+    assert items.splitlines() == [
+        "1. **Crítica** · Lançamento VM-FL · Vestido precisa de aprovação [aaaaaaaaaa]",
+        "   Aprovar a grade inicial de 121 peças em 8 lojas.",
+        "2. **Alta** · Transferir CB-PT M de Brusque para 3 lojas [bbbbbbbbbb]",
+        "   Transferir 22 peças de BRQ.",
+    ]
+    assert "[cccccccccc]" not in answer and "planejador" in closing
 
 
-def test_explica_a_excecao_mais_parecida_quando_pergunta_sobre_um_assunto() -> None:
+def test_mostra_so_as_tres_mais_urgentes_e_conta_o_resto_quando_ha_muitas_abertas() -> None:
+    lines = "\n".join(f"- [{c * 10}] média · aberta · Exceção {c} | Recomendação: Revisar {c} | Fatos: x"
+                      for c in "12345")
+    answer = _ask("O que depende de mim?", f"<contexto>\nExceções:\n{lines}\n</contexto>")
+    opening, items, rest, _ = _blocks(answer)
+    assert "**5 exceções abertas**" in opening
+    assert [line[:3] for line in items.splitlines() if not line.startswith(" ")] == ["1. ", "2. ", "3. "]
+    assert rest == "Mais 2 estão na aba Exceções."
+
+
+def test_explica_a_excecao_em_blocos_com_fatos_em_lista_quando_pergunta_sobre_um_assunto() -> None:
     answer = _ask("Por que transferir camiseta de Brusque?")
-    assert answer.startswith("Sobre [bbbbbbbbbb]") and "planejador" in answer
+    assert _blocks(answer) == [
+        "**Transferir CB-PT M de Brusque para 3 lojas** [bbbbbbbbbb]",
+        "**Recomendação:** transferir 22 peças de BRQ.",
+        "**Números que sustentam:**\n- Estoque no CD: 50 peças\n- Necessidade das lojas: 95 peças",
+        "**Situação:** aberta, severidade alta.",
+        "A decisão é do planejador: o sistema está em modo sombra e não executa nada sozinho.",
+    ]
 
 
 def test_avisa_que_nao_ha_dados_quando_contexto_sem_excecoes() -> None:
