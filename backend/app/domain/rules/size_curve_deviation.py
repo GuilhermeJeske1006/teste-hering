@@ -25,7 +25,8 @@ class SizeCurveDeviationRule:
                 total = sum(sold)
                 if total < p.size_curve_min_units:
                     continue
-                rows = [(size, qty / total * 100, std * 100) for size, qty, std in zip(sku.sizes, sold, standard)]
+                rows = [(size, qty / total * 100, std * 100)
+                        for size, qty, std in zip(sku.sizes, sold, standard, strict=False)]
                 deviating = [r for r in rows if abs(r[1] - r[2]) >= p.size_curve_deviation_pp]
                 if len(deviating) < p.size_curve_min_sizes:
                     continue

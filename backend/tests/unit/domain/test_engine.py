@@ -1,15 +1,13 @@
 """Motor de alocação: compõe previsão, cálculo, rateio, transferências e regras."""
 from app.domain.engine import AllocationEngine
 from app.domain.model import (
-    AllocationException,
     DcStock,
     LineStatus,
     Ownership,
     SalesRecord,
-    Severity,
     StockRecord,
 )
-from app.domain.rules import RuleContext, default_rules
+from app.domain.rules import default_rules
 from tests.unit.factories import make_store, make_week_data
 
 

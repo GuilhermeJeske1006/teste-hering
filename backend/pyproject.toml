@@ -39,11 +39,13 @@ addopts = "-m 'not llm'"
 omit = ["app/static/*"]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "N"]
+# Os nomes das exceções de domínio vêm da skill backend-python-solid (ExceptionNotFound, AlreadyDecided...).
+ignore = ["N818"]
 
 [tool.mypy]
 python_version = "3.12"

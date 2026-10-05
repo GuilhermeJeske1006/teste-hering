@@ -21,7 +21,7 @@ def test_transfere_do_maior_excesso_para_maior_venda_perdida_quando_cd_nao_cobre
     ]
     updated, transfers = TransferPlanner(make_policies()).plan(lines)
     assert transfers == [Transfer("CB-PT", "M", "BRQ", "JOI", 10)]
-    by_store = {l.store: l for l in updated}
+    by_store = {ln.store: ln for ln in updated}
     assert by_store["BRQ"].transfer_out == 10
     assert by_store["JOI"].transfer_in == 10
     assert by_store["BC"].transfer_in == 0

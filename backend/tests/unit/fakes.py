@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.application.errors import LlmUnavailable
 from app.application.ports import Message
@@ -61,7 +61,7 @@ class FakeAudit:
 
 class FixedClock:
     def __init__(self, at: datetime | None = None) -> None:
-        self.at = at or datetime(2026, 10, 5, 9, 0, tzinfo=timezone.utc)
+        self.at = at or datetime(2026, 10, 5, 9, 0, tzinfo=UTC)
 
     def now(self) -> datetime:
         return self.at

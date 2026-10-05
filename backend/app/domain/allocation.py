@@ -86,7 +86,7 @@ class TransferPlanner:
     @staticmethod
     def _by_lost_sales(lines: Iterable[AllocationLine]) -> list[AllocationLine]:
         needing = [line for line in lines if line.need > 0]
-        return sorted(needing, key=lambda l: (-(l.forecast_horizon - l.stock - l.dc_allocated), l.store))
+        return sorted(needing, key=lambda ln: (-(ln.forecast_horizon - ln.stock - ln.dc_allocated), ln.store))
 
     def _sources(self, lines: Iterable[AllocationLine]) -> list[AllocationLine]:
         eligible = [line for line in lines
