@@ -16,3 +16,4 @@ Formato MADR enxuto, em pt-BR. Template e checklist: skill `adr` (`.claude/skill
 | [0010](0010-frontend-react-ts-vite.md) | Frontend em React + TS + Vite, sem estado global, com cliente de API único | Aceita | 2026-10-05 |
 | [0011](0011-seguranca-e-governanca-de-ia.md) | Segurança e governança de IA | Aceita | 2026-10-05 |
 | [0012](0012-parametros-implicitos-viram-politicas.md) | Parâmetros implícitos do `regras.md` viram políticas com valor padrão | Aceita | 2026-10-05 |
+| [0013](0013-interpretacoes-da-especificacao.md) | Interpretações da especificação onde ela é ambígua | Aceita | 2026-10-05 |
