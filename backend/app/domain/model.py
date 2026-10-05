@@ -5,6 +5,7 @@ Nenhum número de regra de negócio mora neste módulo; os limites chegam por `P
 """
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from datetime import date, datetime
@@ -395,3 +396,12 @@ class AllocationPlan:
     lines: tuple[AllocationLine, ...]
     transfers: tuple[Transfer, ...]
     exceptions: tuple[AllocationException, ...] = field(default=())
+
+
+EXCEPTION_ID_LENGTH = 10
+
+
+def exception_id(rule: str, *key: str) -> str:
+    """Id estável e determinístico de uma exceção: sha1(regra + chave) truncado."""
+    raw = f"{rule}:{'|'.join(key)}".encode()
+    return hashlib.sha1(raw, usedforsecurity=False).hexdigest()[:EXCEPTION_ID_LENGTH]

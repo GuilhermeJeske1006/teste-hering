@@ -95,3 +95,10 @@ def test_transferencia_rejeita_quantidade_zero_quando_construida() -> None:
 def test_severidade_ordena_da_critica_para_a_baixa_quando_comparada() -> None:
     ranks = [s.rank for s in (Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW)]
     assert ranks == sorted(ranks)
+
+
+def test_id_de_excecao_e_estavel_e_curto_quando_mesma_chave() -> None:
+    from app.domain.model import exception_id
+    assert exception_id("negative_stock", "GAS", "CV-BR", "P") == exception_id("negative_stock", "GAS", "CV-BR", "P")
+    assert exception_id("negative_stock", "GAS") != exception_id("repeated_rejection", "GAS")
+    assert len(exception_id("x")) == 10
