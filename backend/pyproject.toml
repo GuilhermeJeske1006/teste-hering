@@ -34,6 +34,7 @@ testpaths = ["tests"]
 pythonpath = ["."]
 markers = ["llm: chama o LLM real (fora da suíte padrão)"]
 addopts = "-m 'not llm'"
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient` is deprecated"]
 
 [tool.coverage.run]
 omit = ["app/static/*"]
