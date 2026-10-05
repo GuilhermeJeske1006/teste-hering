@@ -2,7 +2,7 @@
 # O Render builda o mesmo Dockerfile que o CI testa e só implanta commits com o CI verde.
 # A chave da Anthropic nunca fica aqui: `sync: false` faz o dashboard pedir o valor.
 projects:
-  - name: teste-hering
+  - name: Teste Hering
     environments:
       - name: Production
         services:

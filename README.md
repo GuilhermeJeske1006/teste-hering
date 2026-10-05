@@ -159,7 +159,7 @@ A chave da Anthropic nunca entra na imagem: passe em tempo de execução (`--env
 
 ### Deploy (Render)
 
-O ambiente de teste roda em https://mesa-alocacao.onrender.com, no projeto `teste-hering` do Render. A configuração fica no Blueprint [`render.yaml`](render.yaml) (ADR 0017):
+O ambiente de teste roda em https://mesa-alocacao.onrender.com, no projeto `Teste Hering` do Render. A configuração fica no Blueprint [`render.yaml`](render.yaml) (ADR 0017):
 
 - Web Service Docker, buildado a partir de `master` com o mesmo Dockerfile do CI, com health check em `/api/health`;
 - `autoDeployTrigger: checksPass`: só sobe commit com o CI verde, e só quando muda `Dockerfile`, `.dockerignore`, `backend/` ou `frontend/`;
