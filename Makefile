@@ -4,7 +4,7 @@ NPM := npm --prefix frontend
 ENV_FILE := $(wildcard $(CURDIR)/.env)
 ENV_OPT := $(if $(ENV_FILE),--env-file $(ENV_FILE))
 
-.PHONY: install hooks dev test build run validate e2e docker-build docker-run docker-smoke docker-scan
+.PHONY: install hooks dev test build run validate e2e docker-build docker-run docker-smoke docker-scan render-validate
 
 install: ## Instala dependências do backend e do frontend
 	$(PY) -m pip install -e "backend[dev]"
@@ -60,3 +60,6 @@ TRIVY_IMAGE ?= aquasec/trivy:0.75.0
 docker-scan: ## Varre a imagem com o Trivy: falha em vulnerabilidade CRITICAL/HIGH com correção disponível
 	docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v trivy-cache:/root/.cache \
 		$(TRIVY_IMAGE) image --exit-code 1 --severity CRITICAL,HIGH --ignore-unfixed --no-progress $(IMAGE)
+
+render-validate: ## Valida o Blueprint do Render (ADR 0017)
+	render blueprints validate render.yaml

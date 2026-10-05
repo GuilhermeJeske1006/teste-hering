@@ -1,0 +1,38 @@
+# Blueprint do Render: o ambiente de teste da Mesa de Alocação (ADR 0017).
+# O Render builda o mesmo Dockerfile que o CI testa e só implanta commits com o CI verde.
+# A chave da Anthropic nunca fica aqui: `sync: false` faz o dashboard pedir o valor.
+projects:
+  - name: teste-hering
+    environments:
+      - name: Production
+        services:
+          - type: web
+            name: mesa-alocacao
+            runtime: docker
+            repo: https://github.com/GuilhermeJeske1006/mesa-alocacao
+            branch: master
+            region: ohio
+            # Free não tem disco: o SQLite em /data some a cada spin-down ou deploy (ADR 0017).
+            # Para auditoria durável, troque para `plan: starter` e descomente o `disk`.
+            plan: free
+            dockerfilePath: ./Dockerfile
+            dockerContext: .
+            healthCheckPath: /api/health
+            autoDeployTrigger: checksPass
+            buildFilter:
+              paths:
+                - Dockerfile
+                - .dockerignore
+                - backend/**
+                - frontend/**
+            envVars:
+              - key: PORT
+                value: "8000"
+              - key: ANTHROPIC_MODEL
+                value: claude-haiku-4-5
+              - key: ANTHROPIC_API_KEY
+                sync: false
+            # disk:
+            #   name: mesa-data
+            #   mountPath: /data
+            #   sizeGB: 1
