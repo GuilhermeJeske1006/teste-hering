@@ -84,6 +84,8 @@ describe('AllocationDesk', () => {
     renderWithApi(<AllocationDesk />, client)
     const alerts = await screen.findAllByRole('alert')
     expect(alerts[0]).toHaveTextContent('Sem conexão com o servidor.')
+    expect(screen.getByText('Semana indisponível')).toBeInTheDocument()
+    expect(screen.queryByText('Carregando a semana…')).not.toBeInTheDocument()
     await userEvent.click(within(alerts[0]).getByRole('button', { name: 'Tentar de novo' }))
     await waitFor(() => expect(client.getSummary).toHaveBeenCalledTimes(2))
   })

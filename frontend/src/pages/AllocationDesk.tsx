@@ -77,17 +77,16 @@ export function AllocationDesk() {
     { id: 'audit', label: 'Registro' },
   ]
   const week = summary.data?.week
+  const weekLabel = week
+    ? `Semana ${week.iso_week}/${week.year} · ${formatDayMonth(week.start)} a ${formatDayMonth(week.end)}`
+    : summary.error ? 'Semana indisponível' : 'Carregando a semana…'
 
   return (
     <div className={styles.app}>
       <header className={styles.header}>
         <div className={styles.heading}>
           <h1 className={styles.title}>Mesa de Alocação</h1>
-          <p className={styles.week}>
-            {week
-              ? `Semana ${week.iso_week}/${week.year} · ${formatDayMonth(week.start)} a ${formatDayMonth(week.end)}`
-              : 'Carregando a semana…'}
-          </p>
+          <p className={styles.week}>{weekLabel}</p>
         </div>
         <p className={styles.shadow} data-testid="shadow-mode-tag">
           <span aria-hidden="true" className={styles.shadowDot} />
