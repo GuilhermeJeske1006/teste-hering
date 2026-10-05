@@ -1,6 +1,6 @@
 # 0014. CI/CD com hooks locais, GitHub Actions e imagem Docker no GHCR
 
-- **Status:** Aceita
+- **Status:** Aceita; os gatilhos do CI e as etapas do job `imagem` foram revistos na [0015](0015-endurecimento-do-pipeline.md)
 - **Data:** 2026-10-05
 - **Decisores:** tech lead, arquiteto de software
 - **Relacionadas:** [0002](0002-monolito-modular-fastapi-react.md), [0009](0009-estrategia-de-testes.md), [0011](0011-seguranca-e-governanca-de-ia.md)

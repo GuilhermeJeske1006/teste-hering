@@ -17,4 +17,5 @@ Formato MADR enxuto, em pt-BR. Template e checklist: skill `adr` (`.claude/skill
 | [0011](0011-seguranca-e-governanca-de-ia.md) | Segurança e governança de IA | Aceita | 2026-10-05 |
 | [0012](0012-parametros-implicitos-viram-politicas.md) | Parâmetros implícitos do `regras.md` viram políticas com valor padrão | Aceita | 2026-10-05 |
 | [0013](0013-interpretacoes-da-especificacao.md) | Interpretações da especificação onde ela é ambígua | Aceita | 2026-10-05 |
-| [0014](0014-ci-cd-github-actions-ghcr.md) | CI/CD com hooks locais, GitHub Actions e imagem Docker no GHCR | Aceita | 2026-10-05 |
+| [0014](0014-ci-cd-github-actions-ghcr.md) | CI/CD com hooks locais, GitHub Actions e imagem Docker no GHCR | Aceita (revista pela 0015) | 2026-10-05 |
+| [0015](0015-endurecimento-do-pipeline.md) | Endurecimento do pipeline: gatilhos, actions por SHA, smoke test e varredura da imagem | Aceita | 2026-10-05 |

@@ -121,6 +121,7 @@ O índice completo está em [docs/adr/README.md](docs/adr/README.md).
 | [0012](docs/adr/0012-parametros-implicitos-viram-politicas.md) | Parâmetros implícitos viram políticas |
 | [0013](docs/adr/0013-interpretacoes-da-especificacao.md) | Interpretações da especificação |
 | [0014](docs/adr/0014-ci-cd-github-actions-ghcr.md) | CI/CD: hooks, GitHub Actions e GHCR |
+| [0015](docs/adr/0015-endurecimento-do-pipeline.md) | Endurecimento do pipeline: actions por SHA, smoke test e Trivy |
 
 ## Validações
 
@@ -138,15 +139,17 @@ Use o Python do venv (`.venv/bin/python`) nos comandos diretos. Dentro do Claude
 
 | Momento | O que roda | Onde |
 |---|---|---|
-| `git commit` | bloqueia `.env` e chaves `sk-ant-`; Conventional Commits; e, na área alterada, ruff + mypy + pytest unit + arquitetura (backend) ou ESLint + Vitest (frontend) | `.githooks/pre-commit`, `.githooks/commit-msg` |
+| `git commit` | bloqueia `.env`/`.env.*` (exceto `.env.example`) e chaves `sk-ant-`; Conventional Commits; e, na área alterada, ruff + mypy + pytest unit + arquitetura (backend) ou ESLint + Vitest (frontend) | `.githooks/pre-commit`, `.githooks/commit-msg` |
 | `git push` | suíte completa (`run_tests.sh`) + arquitetura | `.githooks/pre-push` |
-| push ou PR no GitHub | jobs `testes`, `solid` e `e2e` (layout em 6 combinações e os 9 fluxos com Playwright); relatórios e capturas ficam nos artefatos do job | `.github/workflows/ci-cd.yml` |
-| push na branch padrão ou tag `v*` (com CI verde) | build e publicação da imagem `ghcr.io/<owner>/<repo>` com as tags `sha-…`, `latest` e a versão | job `imagem` |
+| PR, ou push em `main`/`master` | jobs `testes`, `solid` e `e2e` (layout em 6 combinações e os 9 fluxos com Playwright); relatórios e capturas ficam nos artefatos do job | `.github/workflows/ci-cd.yml` |
+| toda execução, depois do CI verde | build da imagem, smoke test (`make docker-smoke`) e varredura com Trivy (`make docker-scan`, falha em CRITICAL/HIGH com correção) | job `imagem` |
+| push na branch padrão ou tag `v*` | publicação da imagem testada em `ghcr.io/<owner>/<repo>` com as tags `sha-…`, `latest` e a versão | job `imagem` |
 
-Os hooks são ativados com `make hooks`, que o `make install` também roda. Para rodar a imagem localmente:
+As actions ficam fixadas por SHA, e o Dependabot (`.github/dependabot.yml`) propõe as atualizações (ADR 0015). Os hooks são ativados com `make hooks`, que o `make install` também roda. Para rodar e verificar a imagem localmente:
 
 ```bash
 make docker-build
+make docker-smoke docker-scan     # o mesmo gate que o CD roda antes de publicar
 make docker-run MESA_PORT=8010    # usa o .env, se existir; o banco fica no volume mesa-data
 ```
 
