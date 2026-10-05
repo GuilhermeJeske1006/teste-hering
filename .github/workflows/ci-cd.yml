@@ -1,18 +1,20 @@
-# CI/CD da Mesa de Alocação (ADR 0014).
-# CI: em todo push e pull request roda as mesmas validações das skills (testes, SOLID, layout e fluxos E2E).
-# CD: quando a branch padrão (ou uma tag v*) passa no CI, publica a imagem Docker do monolito no GHCR.
+# CI/CD da Mesa de Alocação (ADRs 0014 e 0015).
+# CI: em pull request e no push da branch padrão roda as mesmas validações das skills (testes, SOLID, layout e fluxos E2E).
+# CD: toda execução builda a imagem e faz smoke test e varredura; só a branch padrão (ou uma tag v*) publica no GHCR.
+# As actions são fixadas por SHA (o comentário diz a versão); o Dependabot propõe as atualizações.
 name: CI/CD
 
 on:
   push:
-    branches: ["**"]
+    branches: [main, master]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Em PR, um push novo cancela a execução anterior; na branch padrão e em tags, nunca interrompe uma publicação.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -29,15 +31,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
           cache-dependency-path: backend/pyproject.toml
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -65,14 +67,14 @@ jobs:
 
       - name: Guardar relatórios
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: relatorio-testes
           path: reports/
           if-no-files-found: ignore
 
       - name: Guardar build do frontend
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: frontend-build
           path: backend/app/static/
@@ -83,8 +85,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: check_architecture.py
@@ -98,9 +100,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -113,7 +115,7 @@ jobs:
           python -m playwright install --with-deps chromium
 
       - name: Baixar build do frontend
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: frontend-build
           path: backend/app/static/
@@ -123,8 +125,15 @@ jobs:
           export MESA_DB_PATH="$RUNNER_TEMP/layout.db"
           (cd backend && python -m uvicorn app.main:app --port 8000 > "$RUNNER_TEMP/uvicorn.log" 2>&1 &)
           for _ in $(seq 1 60); do curl -fs http://127.0.0.1:8000/api/health && break; sleep 0.5; done
+          curl -fs http://127.0.0.1:8000/api/health > /dev/null \
+            || { echo "::error::O monolito não subiu em 30 s"; exit 1; }
           python .claude/skills/validar-layout/scripts/validate_layout.py --url http://127.0.0.1:8000 --out reports/layout
           pkill -f "uvicorn app.main:app --port 8000" || true
+
+      - name: Log do monolito
+        if: failure()
+        run: |
+          echo "::group::uvicorn.log"; cat "$RUNNER_TEMP/uvicorn.log" || true; echo "::endgroup::"
 
       - name: Fluxos E2E (skill validar-fluxo)
         if: always()
@@ -140,37 +149,57 @@ jobs:
 
       - name: Guardar relatórios e capturas
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: relatorio-e2e
           path: reports/
           if-no-files-found: ignore
 
   imagem:
-    name: CD · Publicar imagem no GHCR
+    name: CD · Imagem (build, smoke test, varredura e publicação no GHCR)
     needs: [testes, solid, e2e]
-    if: >-
-      github.event_name == 'push' &&
-      (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) ||
-       startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     permissions:
       contents: read
       packages: write
+    env:
+      IMAGE: mesa-alocacao:ci
+      PUBLISH: >-
+        ${{ github.event_name == 'push' &&
+        (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) ||
+        startsWith(github.ref, 'refs/tags/v')) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
-      - uses: docker/login-action@v3
+      - name: Build local da imagem
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          load: true
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test (healthcheck, SPA, modo sombra, não-root, sem chave)
+        run: make docker-smoke IMAGE="$IMAGE"
+
+      - name: Varredura de vulnerabilidades (Trivy)
+        run: make docker-scan IMAGE="$IMAGE"
+
+      - name: Login no GHCR
+        if: env.PUBLISH == 'true'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - id: meta
-        uses: docker/metadata-action@v5
+        if: env.PUBLISH == 'true'
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
@@ -178,20 +207,25 @@ jobs:
             type=ref,event=tag
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - uses: docker/build-push-action@v6
+      # Mesmo builder e mesmo cache do build testado acima: as camadas publicadas são as que passaram no smoke test.
+      - name: Publicar no GHCR
+        if: env.PUBLISH == 'true'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Resumo
+        if: env.PUBLISH == 'true'
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
         run: |
           {
             echo "### Imagem publicada"
             echo '```'
-            echo "${{ steps.meta.outputs.tags }}"
+            echo "$TAGS"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
