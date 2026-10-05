@@ -45,3 +45,10 @@
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
+
+@media (max-width: 599px) {
+  .list {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+}

@@ -6,6 +6,7 @@ import { useCopilot } from '../hooks/useCopilot'
 import { makeFakeClient } from '../test/fakeClient'
 import { copilot, exceptions } from '../test/fixtures'
 import { renderWithApi } from '../test/render'
+import { withNumberedSources } from '../format'
 import { CopilotPanel } from './CopilotPanel'
 
 function Connected() {
@@ -23,10 +24,10 @@ describe('CopilotPanel', () => {
     renderWithApi(<Connected />, client)
     await userEvent.type(screen.getByLabelText('Pergunta para o copiloto'), 'O que depende de mim?')
     await userEvent.click(screen.getByRole('button', { name: 'Perguntar' }))
-    const assistant = await screen.findByText(copilot.answer)
+    const assistant = await screen.findByText(withNumberedSources(copilot.answer, copilot.sources))
     expect(assistant.closest('[data-role]')).toHaveAttribute('data-role', 'assistant')
     expect(screen.getAllByTestId('copilot-message').map((m) => m.dataset.role)).toEqual(['user', 'assistant'])
-    expect(screen.getByText(/Fontes:/)).toHaveTextContent(exceptions[0].title)
+    expect(screen.getByRole('list', { name: 'Fontes' })).toHaveTextContent(exceptions[0].title)
     expect(client.askCopilot).toHaveBeenCalledWith('O que depende de mim?', [], undefined)
   })
 
@@ -62,5 +63,16 @@ describe('CopilotPanel', () => {
     expect(screen.getByRole('button', { name: 'Sugestão' })).toBeDisabled()
     expect(screen.getByText('Em foco: CB-PT')).toBeInTheDocument()
     act(() => screen.getByLabelText('Pergunta para o copiloto').focus())
+  })
+})
+
+describe('withNumberedSources', () => {
+  it('troca ids citados por números na ordem das fontes quando há fontes', () => {
+    expect(withNumberedSources('Veja [aaa] e depois [bbb]; de novo [aaa]. [zzz] fica.', ['aaa', 'bbb']))
+      .toBe('Veja [1] e depois [2]; de novo [1]. [zzz] fica.')
+  })
+
+  it('mantém o texto quando não há fontes', () => {
+    expect(withNumberedSources('Sem [ids] aqui.')).toBe('Sem [ids] aqui.')
   })
 })

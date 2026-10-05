@@ -13,10 +13,19 @@ export const formatSigned = (value: number): string => (value > 0 ? `+${formatIn
 export const formatDateTime = (iso: string): string => dateTime.format(new Date(iso))
 export const formatDayMonth = (isoDate: string): string => dayMonth.format(new Date(`${isoDate}T00:00:00Z`))
 
+const SINGULAR_UNITS: Record<string, string> = {
+  peças: 'peça', semanas: 'semana', lojas: 'loja', tamanhos: 'tamanho', rejeições: 'rejeição',
+}
+
 export function formatPolicyValue(value: number | number[], unit: string): string {
   if (Array.isArray(value)) return value.map(formatDecimal).join(' · ')
   if (unit === 'R$') return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
   if (unit === '%') return `${formatDecimal(value)}%`
   if (unit === '×') return `${formatDecimal(value)}×`
-  return `${formatDecimal(value)} ${unit}`
+  return `${formatDecimal(value)} ${value === 1 ? (SINGULAR_UNITS[unit] ?? unit) : unit}`
+}
+
+// Troca os ids citados ([abc123]) por referências numeradas ([1]) que batem com a lista de fontes.
+export function withNumberedSources(content: string, sources: string[] = []): string {
+  return sources.reduce((text, id, i) => text.split(`[${id}]`).join(`[${i + 1}]`), content)
 }

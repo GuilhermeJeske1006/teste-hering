@@ -24,6 +24,12 @@ describe('format', () => {
     expect(formatPolicyValue([0.4, 0.3], 'pesos')).toBe('0,4 · 0,3')
   })
 
+  it('usa a unidade no singular quando o valor é 1', () => {
+    expect(formatPolicyValue(1, 'peças')).toBe('1 peça')
+    expect(formatPolicyValue(1, 'semanas')).toBe('1 semana')
+    expect(formatPolicyValue(1, 'p.p.')).toBe('1 p.p.')
+  })
+
   it('formata datas no padrão brasileiro quando recebe ISO', () => {
     expect(formatDayMonth('2026-10-05')).toBe('05/10')
     expect(formatDateTime('2026-10-05T12:00:00Z')).toMatch(/05\/10\/(20)?26/)

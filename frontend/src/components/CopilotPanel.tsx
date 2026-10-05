@@ -1,4 +1,5 @@
 import { useId, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { withNumberedSources } from '../format'
 import type { CopilotMessage } from '../hooks/useCopilot'
 import styles from './CopilotPanel.module.css'
 import { ErrorState } from './States'
@@ -53,9 +54,11 @@ export function CopilotPanel(props: CopilotPanelProps) {
         {messages.map((m, i) => (
           <div key={i} className={styles.message} data-testid="copilot-message" data-role={m.role}>
             <span className="visually-hidden">{m.role === 'user' ? 'Você:' : 'Copiloto:'}</span>
-            <p>{m.content}</p>
+            <p>{withNumberedSources(m.content, m.sources)}</p>
             {m.sources && m.sources.length > 0 && (
-              <p className={styles.sources}>Fontes: {m.sources.map((id) => sourceTitles[id] ?? id).join(' · ')}</p>
+              <ol className={styles.sources} aria-label="Fontes">
+                {m.sources.map((id, n) => <li key={id}>[{n + 1}] {sourceTitles[id] ?? id}</li>)}
+              </ol>
             )}
           </div>
         ))}
