@@ -1064,7 +1064,7 @@ export const interpretation: SignalInterpretation = {
 }
 
 export const copilot: CopilotAnswer = {
-  "answer": "Há 6 exceções abertas que dependem de você. A mais urgente é [275c8698d6] Lançamento VM-FL · Vestido midi floral precisa de aprovação (severidade crítica): aprovar a grade inicial de 121 peças em 8 lojas. Na sequência vêm [1d3f769caa] Transferir CB-PT M de Brusque para 3 lojas e [cc8dfa909e] Sinal de Blumenau Centro pede +40% em tudo. A decisão é do planejador: o sistema está em modo sombra e não executa nada.",
+  "answer": "Há **6 exceções abertas** que dependem de você, da mais urgente para a menos urgente:\n\n1. **Crítica** · Lançamento VM-FL · Vestido midi floral precisa de aprovação [275c8698d6]\n   Aprovar a grade inicial de 121 peças em 8 lojas.\n2. **Alta** · Transferir CB-PT M de Brusque para 3 lojas [1d3f769caa]\n   Transferir 22 peças de BRQ: 13 para JOI, 8 para BNU-S e 1 para BC.\n3. **Alta** · Sinal de Blumenau Centro pede +40% em tudo [cc8dfa909e]\n   Decidir se aplica +40%: o limite automático é 20%.\n\nMais 3 estão na aba Exceções.\n\nA decisão é do planejador: o sistema está em modo sombra e não executa nada.",
   "sources": [
     "275c8698d6",
     "1d3f769caa",

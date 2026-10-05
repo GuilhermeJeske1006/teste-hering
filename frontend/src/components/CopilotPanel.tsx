@@ -1,7 +1,8 @@
-import { useId, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { withNumberedSources } from '../format'
 import type { CopilotMessage } from '../hooks/useCopilot'
 import styles from './CopilotPanel.module.css'
+import { RichText, SourceRef } from './RichText'
 import { ErrorState } from './States'
 
 interface CopilotPanelProps {
@@ -20,6 +21,14 @@ export function CopilotPanel(props: CopilotPanelProps) {
   const { messages, pending, error, suggestions, sourceTitles, focusLabel, onAsk, onRetry } = props
   const [question, setQuestion] = useState('')
   const ids = useId()
+  const logRef = useRef<HTMLDivElement>(null)
+
+  // A cada mensagem nova, a última pergunta sobe para o topo da conversa e a resposta começa logo abaixo dela.
+  useEffect(() => {
+    const log = logRef.current
+    const asked = log ? Array.from(log.querySelectorAll<HTMLElement>('[data-role="user"]')).at(-1) : undefined
+    if (log && asked) log.scrollTop = asked.offsetTop
+  }, [messages.length])
 
   function send() {
     const text = question.trim()
@@ -47,17 +56,19 @@ export function CopilotPanel(props: CopilotPanelProps) {
         <p className={styles.note}>Responde só com os dados da mesa e não executa nada.</p>
         {focusLabel && <p className={styles.focus}>Em foco: {focusLabel}</p>}
       </header>
-      <div className={styles.log} role="log" aria-live="polite" aria-label="Conversa com o copiloto">
+      <div ref={logRef} className={styles.log} role="log" aria-live="polite" aria-label="Conversa com o copiloto">
         {messages.length === 0 && (
           <p className={styles.empty}>Pergunte sobre as decisões da semana. A resposta cita as exceções usadas.</p>
         )}
         {messages.map((m, i) => (
           <div key={i} className={styles.message} data-testid="copilot-message" data-role={m.role}>
             <span className="visually-hidden">{m.role === 'user' ? 'Você:' : 'Copiloto:'}</span>
-            <p>{withNumberedSources(m.content, m.sources)}</p>
+            {m.role === 'assistant'
+              ? <RichText text={withNumberedSources(m.content, m.sources)} refCount={m.sources?.length ?? 0} />
+              : <p>{m.content}</p>}
             {m.sources && m.sources.length > 0 && (
               <ol className={styles.sources} aria-label="Fontes">
-                {m.sources.map((id, n) => <li key={id}>[{n + 1}] {sourceTitles[id] ?? id}</li>)}
+                {m.sources.map((id, n) => <li key={id}><SourceRef n={n + 1} /> {sourceTitles[id] ?? id}</li>)}
               </ol>
             )}
           </div>

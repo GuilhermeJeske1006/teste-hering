@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/client'
@@ -24,11 +24,36 @@ describe('CopilotPanel', () => {
     renderWithApi(<Connected />, client)
     await userEvent.type(screen.getByLabelText('Pergunta para o copiloto'), 'O que depende de mim?')
     await userEvent.click(screen.getByRole('button', { name: 'Perguntar' }))
-    const assistant = await screen.findByText(withNumberedSources(copilot.answer, copilot.sources))
-    expect(assistant.closest('[data-role]')).toHaveAttribute('data-role', 'assistant')
-    expect(screen.getAllByTestId('copilot-message').map((m) => m.dataset.role)).toEqual(['user', 'assistant'])
-    expect(screen.getByRole('list', { name: 'Fontes' })).toHaveTextContent(exceptions[0].title)
+    await waitFor(() => expect(screen.getAllByTestId('copilot-message')).toHaveLength(2))
+    const [user, assistant] = screen.getAllByTestId('copilot-message')
+    expect([user.dataset.role, assistant.dataset.role]).toEqual(['user', 'assistant'])
+    expect(within(assistant).getByText('6 exceções abertas').tagName).toBe('STRONG')
+    const priorities = assistant.querySelector('ol')
+    expect(priorities?.children).toHaveLength(3)
+    expect(priorities?.children[0]).toHaveTextContent('Crítica · Lançamento VM-FL')
+    expect(priorities?.children[0]).toHaveTextContent('fonte 1')
+    expect(assistant).not.toHaveTextContent('**')
+    expect(assistant).not.toHaveTextContent(`[${copilot.sources[0]}]`)
+    expect(screen.getByRole('list', { name: 'Fontes' })).toHaveTextContent(`fonte 1 ${exceptions[0].title}`)
     expect(client.askCopilot).toHaveBeenCalledWith('O que depende de mim?', [], undefined)
+  })
+
+  it('rola a conversa até a última pergunta quando chega mensagem nova', () => {
+    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.dataset.role === 'user' ? Number(this.textContent?.match(/\d+/)?.[0] ?? 0) : 0
+    })
+    const props = { pending: false, error: null, suggestions: [], sourceTitles: {}, onAsk: vi.fn() }
+    const first = [{ role: 'user' as const, content: 'Pergunta 0' }, { role: 'assistant' as const, content: 'Resposta' }]
+    const { rerender } = render(<CopilotPanel messages={first} {...props} />)
+    rerender(<CopilotPanel messages={[...first, { role: 'user', content: 'Pergunta 240' }]} {...props} />)
+    expect(screen.getByRole('log').scrollTop).toBe(240)
+    vi.restoreAllMocks()
+  })
+
+  it('mostra a mensagem do planejador como texto simples, sem formatação', () => {
+    render(<CopilotPanel messages={[{ role: 'user', content: 'Isto **não** vira negrito' }]} pending={false}
+      error={null} suggestions={[]} sourceTitles={{}} onAsk={vi.fn()} />)
+    expect(screen.getByText('Isto **não** vira negrito')).toBeInTheDocument()
   })
 
   it('mostra o erro e tenta de novo quando o client falha', async () => {

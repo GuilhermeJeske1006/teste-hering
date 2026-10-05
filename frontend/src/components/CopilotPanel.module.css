@@ -29,6 +29,8 @@
 }
 
 .log {
+  /* relative: o offsetTop das mensagens passa a ser medido a partir da conversa (rolagem até a última pergunta) */
+  position: relative;
   display: grid;
   align-content: start;
   gap: var(--space-2);
