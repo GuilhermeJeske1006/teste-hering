@@ -120,6 +120,7 @@ O índice completo está em [docs/adr/README.md](docs/adr/README.md).
 | [0011](docs/adr/0011-seguranca-e-governanca-de-ia.md) | Segurança e governança de IA |
 | [0012](docs/adr/0012-parametros-implicitos-viram-politicas.md) | Parâmetros implícitos viram políticas |
 | [0013](docs/adr/0013-interpretacoes-da-especificacao.md) | Interpretações da especificação |
+| [0014](docs/adr/0014-ci-cd-github-actions-ghcr.md) | CI/CD: hooks, GitHub Actions e GHCR |
 
 ## Validações
 
@@ -132,6 +133,24 @@ O índice completo está em [docs/adr/README.md](docs/adr/README.md).
 | `make validate` | todas as anteriores, sem parar na primeira falha | os acima |
 
 Use o Python do venv (`.venv/bin/python`) nos comandos diretos. Dentro do Claude Code, `/validar` roda o diagnóstico completo.
+
+## CI/CD
+
+| Momento | O que roda | Onde |
+|---|---|---|
+| `git commit` | bloqueia `.env` e chaves `sk-ant-`; Conventional Commits; e, na área alterada, ruff + mypy + pytest unit + arquitetura (backend) ou ESLint + Vitest (frontend) | `.githooks/pre-commit`, `.githooks/commit-msg` |
+| `git push` | suíte completa (`run_tests.sh`) + arquitetura | `.githooks/pre-push` |
+| push ou PR no GitHub | jobs `testes`, `solid` e `e2e` (layout em 6 combinações e os 9 fluxos com Playwright); relatórios e capturas ficam nos artefatos do job | `.github/workflows/ci-cd.yml` |
+| push na branch padrão ou tag `v*` (com CI verde) | build e publicação da imagem `ghcr.io/<owner>/<repo>` com as tags `sha-…`, `latest` e a versão | job `imagem` |
+
+Os hooks são ativados com `make hooks`, que o `make install` também roda. Para rodar a imagem localmente:
+
+```bash
+make docker-build
+make docker-run MESA_PORT=8010    # usa o .env, se existir; o banco fica no volume mesa-data
+```
+
+A chave da Anthropic nunca entra na imagem: passe em tempo de execução (`--env-file .env` ou `-e ANTHROPIC_API_KEY=...`). O deploy num ambiente ainda não está definido (ADR 0014).
 
 ## Kit do Claude Code
 

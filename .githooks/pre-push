@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR
+# Antes do push: a suíte completa da skill validar-testes e a revisão de arquitetura.
+# Os fluxos E2E e o layout rodam no CI (precisam do Chromium e do servidor).
+# shellcheck source=_common.sh
+source "$(dirname "$0")/_common.sh"
+step "suíte completa (run_tests.sh)"
+PYTHON="$PY" bash .claude/skills/validar-testes/scripts/run_tests.sh \
+  || fail "Testes reprovados. Veja reports/tests.md e reports/test-<etapa>.log."
+step "arquitetura"
+"$PY" .claude/skills/revisar-solid/scripts/check_architecture.py backend/app
+printf '\033[1;32m✓ pre-push ok\033[0m\n'

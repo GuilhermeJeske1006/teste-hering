@@ -1,0 +1,24 @@
+# Nunca leve segredos, ambientes locais ou artefatos para a imagem.
+.env
+.env.*
+!.env.example
+.git
+.github
+.githooks
+.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/*.egg-info
+.coverage
+frontend/node_modules
+frontend/dist
+frontend/coverage
+backend/app/static
+backend/data
+backend/tests
+reports
+docs
+.claude

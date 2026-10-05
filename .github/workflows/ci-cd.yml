@@ -1,0 +1,197 @@
+# CI/CD da Mesa de Alocação (ADR 0014).
+# CI: em todo push e pull request roda as mesmas validações das skills (testes, SOLID, layout e fluxos E2E).
+# CD: quando a branch padrão (ou uma tag v*) passa no CI, publica a imagem Docker do monolito no GHCR.
+name: CI/CD
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+  PYTHON: python
+  FORCE_COLOR: "1"
+
+jobs:
+  testes:
+    name: Testes (lint, tipos, unit, feature/golden, vitest, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e "backend[dev]"
+          npm ci --prefix frontend --no-audit --no-fund
+
+      - name: Suíte da skill validar-testes
+        run: bash .claude/skills/validar-testes/scripts/run_tests.sh
+
+      - name: Resumo
+        if: always()
+        run: test -f reports/tests.md && cat reports/tests.md >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Logs das etapas que falharam
+        if: failure()
+        run: |
+          for log in reports/test-*.log; do
+            echo "::group::$log"; cat "$log"; echo "::endgroup::"
+          done
+
+      - name: Guardar relatórios
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-testes
+          path: reports/
+          if-no-files-found: ignore
+
+      - name: Guardar build do frontend
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: backend/app/static/
+          if-no-files-found: error
+
+  solid:
+    name: Arquitetura e SOLID
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: check_architecture.py
+        run: |
+          python .claude/skills/revisar-solid/scripts/check_architecture.py backend/app | tee solid.md
+          cat solid.md >> "$GITHUB_STEP_SUMMARY"
+
+  e2e:
+    name: Layout e fluxos E2E (Playwright)
+    needs: testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Instalar dependências e Chromium
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e "backend[dev]"
+          python -m playwright install --with-deps chromium
+
+      - name: Baixar build do frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: backend/app/static/
+
+      - name: Validação de layout (skill validar-layout)
+        run: |
+          export MESA_DB_PATH="$RUNNER_TEMP/layout.db"
+          (cd backend && python -m uvicorn app.main:app --port 8000 > "$RUNNER_TEMP/uvicorn.log" 2>&1 &)
+          for _ in $(seq 1 60); do curl -fs http://127.0.0.1:8000/api/health && break; sleep 0.5; done
+          python .claude/skills/validar-layout/scripts/validate_layout.py --url http://127.0.0.1:8000 --out reports/layout
+          pkill -f "uvicorn app.main:app --port 8000" || true
+
+      - name: Fluxos E2E (skill validar-fluxo)
+        if: always()
+        run: python .claude/skills/validar-fluxo/scripts/validate_flows.py --out reports/flows
+
+      - name: Resumo
+        if: always()
+        run: |
+          for f in reports/layout/layout.md reports/flows/flows.md; do
+            [ -f "$f" ] && { cat "$f"; echo; } >> "$GITHUB_STEP_SUMMARY"
+          done
+          true
+
+      - name: Guardar relatórios e capturas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-e2e
+          path: reports/
+          if-no-files-found: ignore
+
+  imagem:
+    name: CD · Publicar imagem no GHCR
+    needs: [testes, solid, e2e]
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) ||
+       startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha,format=short
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Resumo
+        run: |
+          {
+            echo "### Imagem publicada"
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

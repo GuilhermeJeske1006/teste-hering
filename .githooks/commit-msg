@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR
+# Exige Conventional Commits (CLAUDE.md). Mensagens de merge e revert do git passam direto.
+# shellcheck source=_common.sh
+source "$(dirname "$0")/_common.sh"
+subject="$(head -n1 "$1")"
+if grep -Eq "^(Merge|Revert|fixup!|squash!) " <<<"$subject"; then
+  exit 0
+fi
+pattern='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: .{1,}$'
+if ! grep -Eq "$pattern" <<<"$subject"; then
+  fail "Mensagem fora do Conventional Commits: \"$subject\"
+  Exemplo: feat(domain): add seasonal rule  |  fix(api): map 409 errors"
+fi
+if [ "${#subject}" -gt 100 ]; then
+  fail "Assunto do commit com ${#subject} caracteres (máximo 100)."
+fi

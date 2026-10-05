@@ -4,12 +4,17 @@ NPM := npm --prefix frontend
 ENV_FILE := $(wildcard $(CURDIR)/.env)
 ENV_OPT := $(if $(ENV_FILE),--env-file $(ENV_FILE))
 
-.PHONY: install dev test build run validate e2e
+.PHONY: install hooks dev test build run validate e2e docker-build docker-run
 
 install: ## Instala dependências do backend e do frontend
 	$(PY) -m pip install -e "backend[dev]"
 	$(PY) -m playwright install chromium
 	$(NPM) install
+	$(MAKE) hooks
+
+hooks: ## Ativa os hooks de commit e push (.githooks)
+	git config core.hooksPath .githooks
+	@echo "Hooks ativos: pre-commit, commit-msg e pre-push."
 
 dev: ## Backend com reload (8000) + Vite (5173) com proxy de /api
 	trap 'kill 0' EXIT; \
@@ -38,3 +43,11 @@ validate: ## Testes, SOLID, layout e fluxos (não para na primeira falha)
 	kill $$pid 2>/dev/null; pkill -f "uvicorn app.main:app --port $(MESA_PORT)" 2>/dev/null; \
 	$(PY) .claude/skills/validar-fluxo/scripts/validate_flows.py --out reports/flows || fail=1; \
 	exit $$fail
+
+IMAGE ?= mesa-alocacao:local
+
+docker-build: ## Imagem do monolito (a mesma que o CD publica no GHCR)
+	docker build -t $(IMAGE) .
+
+docker-run: ## Sobe a imagem em http://localhost:$(MESA_PORT), com o .env se existir
+	docker run --rm -p $(MESA_PORT):8000 $(if $(ENV_FILE),--env-file $(ENV_FILE)) -v mesa-data:/data $(IMAGE)
