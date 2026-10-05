@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # Monolito da Mesa de Alocação: build do React + FastAPI num único processo (ADR 0002).
 
-FROM node:22-slim AS frontend
+FROM node:26-slim AS frontend
 WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json frontend/.npmrc ./
 RUN npm ci --no-audit --no-fund
