@@ -405,3 +405,16 @@ def exception_id(rule: str, *key: str) -> str:
     """Id estável e determinístico de uma exceção: sha1(regra + chave) truncado."""
     raw = f"{rule}:{'|'.join(key)}".encode()
     return hashlib.sha1(raw, usedforsecurity=False).hexdigest()[:EXCEPTION_ID_LENGTH]
+
+
+@dataclass(frozen=True, slots=True)
+class SignalInterpretation:
+    """Sinal estruturado pelo agente de sinais, já validado e com `requires_human` recalculado."""
+
+    store: str | None
+    type: SignalType
+    event: str | None
+    adjustments: tuple[SignalAdjustment, ...]
+    confidence: float
+    requires_human: bool
+    reason: str
