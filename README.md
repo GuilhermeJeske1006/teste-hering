@@ -122,6 +122,7 @@ O índice completo está em [docs/adr/README.md](docs/adr/README.md).
 | [0013](docs/adr/0013-interpretacoes-da-especificacao.md) | Interpretações da especificação |
 | [0014](docs/adr/0014-ci-cd-github-actions-ghcr.md) | CI/CD: hooks, GitHub Actions e GHCR |
 | [0015](docs/adr/0015-endurecimento-do-pipeline.md) | Endurecimento do pipeline: actions por SHA, smoke test e Trivy |
+| [0016](docs/adr/0016-respostas-do-copiloto-em-markdown-restrito.md) | Copiloto em Markdown restrito, sem HTML |
 
 ## Validações
 

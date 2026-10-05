@@ -19,3 +19,4 @@ Formato MADR enxuto, em pt-BR. Template e checklist: skill `adr` (`.claude/skill
 | [0013](0013-interpretacoes-da-especificacao.md) | Interpretações da especificação onde ela é ambígua | Aceita | 2026-10-05 |
 | [0014](0014-ci-cd-github-actions-ghcr.md) | CI/CD com hooks locais, GitHub Actions e imagem Docker no GHCR | Aceita (revista pela 0015) | 2026-10-05 |
 | [0015](0015-endurecimento-do-pipeline.md) | Endurecimento do pipeline: gatilhos, actions por SHA, smoke test e varredura da imagem | Aceita | 2026-10-05 |
+| [0016](0016-respostas-do-copiloto-em-markdown-restrito.md) | Respostas do copiloto em Markdown restrito, mostradas sem HTML | Aceita | 2026-10-05 |
