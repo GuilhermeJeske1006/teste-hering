@@ -1,13 +1,20 @@
+/* Sombra na borda direita enquanto houver colunas escondidas: a capa (local) acompanha o fim do conteúdo
+   e cobre a sombra (scroll) quando a rolagem chega ao fim. */
 .scroller {
   overflow-x: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-surface);
+  background:
+    linear-gradient(to left, var(--color-surface) 40%, transparent) right / 32px 100% no-repeat local,
+    radial-gradient(farthest-side at 100% 50%, var(--color-scroll-shadow), transparent) right / 12px 100% no-repeat scroll,
+    var(--color-surface);
 }
 
 .table {
   width: 100%;
-  border-collapse: collapse;
+  /* separate (e não collapse) para a coluna fixa manter as bordas ao rolar */
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
 }
@@ -33,6 +40,18 @@
 .table tbody tr:last-child th,
 .table tbody tr:last-child td {
   border-bottom: 0;
+}
+
+/* A loja fica visível enquanto a grade de tamanhos rola na horizontal (celular). */
+.table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-surface);
+}
+
+.table thead th:first-child {
+  background: var(--color-surface-2);
 }
 
 .num {

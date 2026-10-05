@@ -51,6 +51,7 @@
   --color-skeleton: #e5e9ef;
   --color-skeleton-shine: #f4f5f7;
   --shadow-card: 0 1px 2px #0f172a14;
+  --color-scroll-shadow: #0f172a2e;
 
   --sev-critical: #b42318;
   --sev-critical-bg: #fdecea;
@@ -87,6 +88,7 @@
     --color-skeleton: #232a37;
     --color-skeleton-shine: #2d3546;
     --shadow-card: 0 1px 2px #00000066;
+    --color-scroll-shadow: #000000b3;
 
     --sev-critical: #ff8a7a;
     --sev-critical-bg: #3b1a17;
