@@ -123,6 +123,7 @@ O índice completo está em [docs/adr/README.md](docs/adr/README.md).
 | [0014](docs/adr/0014-ci-cd-github-actions-ghcr.md) | CI/CD: hooks, GitHub Actions e GHCR |
 | [0015](docs/adr/0015-endurecimento-do-pipeline.md) | Endurecimento do pipeline: actions por SHA, smoke test e Trivy |
 | [0016](docs/adr/0016-respostas-do-copiloto-em-markdown-restrito.md) | Copiloto em Markdown restrito, sem HTML |
+| [0017](docs/adr/0017-deploy-no-render-com-blueprint.md) | Deploy no Render via Blueprint (`render.yaml`) |
 
 ## Validações
 
@@ -154,7 +155,23 @@ make docker-smoke docker-scan     # o mesmo gate que o CD roda antes de publicar
 make docker-run MESA_PORT=8010    # usa o .env, se existir; o banco fica no volume mesa-data
 ```
 
-A chave da Anthropic nunca entra na imagem: passe em tempo de execução (`--env-file .env` ou `-e ANTHROPIC_API_KEY=...`). O deploy num ambiente ainda não está definido (ADR 0014).
+A chave da Anthropic nunca entra na imagem: passe em tempo de execução (`--env-file .env` ou `-e ANTHROPIC_API_KEY=...`).
+
+### Deploy (Render)
+
+O ambiente de teste roda em https://mesa-alocacao.onrender.com, no projeto `teste-hering` do Render. A configuração fica no Blueprint [`render.yaml`](render.yaml) (ADR 0017):
+
+- Web Service Docker, buildado a partir de `master` com o mesmo Dockerfile do CI, com health check em `/api/health`;
+- `autoDeployTrigger: checksPass`: só sobe commit com o CI verde, e só quando muda `Dockerfile`, `.dockerignore`, `backend/` ou `frontend/`;
+- `ANTHROPIC_API_KEY` com `sync: false`: o valor é preenchido no dashboard (Environment) e nunca vai para o git.
+
+O plano é o **Free**. A instância desliga depois de uns 15 minutos sem tráfego, e o primeiro acesso leva uns 30 s. Sem disco, **decisões e auditoria se perdem** a cada desligamento ou deploy. Para uso real, troque para `plan: starter` e descomente o `disk` em `/data`.
+
+```bash
+make render-validate    # valida o render.yaml (o CLI precisa estar na conta que enxerga o repositório)
+.venv/bin/python .claude/skills/validar-layout/scripts/validate_layout.py --url https://mesa-alocacao.onrender.com
+.venv/bin/python .claude/skills/validar-fluxo/scripts/validate_flows.py --url https://mesa-alocacao.onrender.com --no-server
+```
 
 ## Kit do Claude Code
 
