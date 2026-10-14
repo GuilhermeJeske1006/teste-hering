@@ -9,7 +9,7 @@ COPY frontend/ ./
 # O vite.config.ts gera o build em ../backend/app/static
 RUN npm run build
 
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
